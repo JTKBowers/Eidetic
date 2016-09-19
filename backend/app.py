@@ -4,9 +4,10 @@ import random
 import hashlib
 import string
 
-import psycopg2
-
 import flask
+
+import db
+
 app = flask.Flask(__name__)
 
 app.config.from_object(__name__)
@@ -15,15 +16,21 @@ app.config.update(dict(
 ))
 app.config.from_envvar('EIDETIC_SETTINGS', silent=True)
 
-def db_connect():
-    return psycopg2.connect(app.config['DATABASE'])
+from datetime import datetime
 
+def json_serial(obj):
+    """JSON serializer for objects not serializable by default json code"""
+
+    if isinstance(obj, datetime):
+        serial = obj.isoformat()
+        return serial
+    raise TypeError ("Type not serializable")
 def get_db():
     """Opens a new database connection if there is none yet for the
     current application context.
     """
     if not hasattr(flask.g, 'psql_db'):
-        flask.g.psql_db = db_connect()
+        flask.g.psql_db = db.DatabaseConnection(app.config['DATABASE'])
     return flask.g.psql_db
 
 @app.teardown_appcontext
@@ -35,9 +42,8 @@ def close_db(error):
 # GET /metrics/
 @app.route("/metrics/")
 def get_metrics():
-    cur = get_db().cursor()
-    cur.execute("SELECT name FROM metrics;")
-    names = cur.fetchall()
+    db = get_db()
+    names = db.get_metrics()
     return_dict = {
         "metrics": [{"name": name} for name in names]
     }
@@ -53,13 +59,12 @@ def add_metric():
     name = flask.request.args.get('name', None)
     if name is None:
         flask.abort(400)
-    cur = get_db().cursor()
+
     api_key = generate_key()
-    cur.execute(
-        """INSERT INTO metrics (name, key_hash, privileged)
-        VALUES (%s, %s, FALSE);""",
-        (name, hashlib.sha512(api_key.encode('utf-8')).hexdigest())
-    )
+    key_hash = hashlib.sha512(api_key.encode('utf-8')).hexdigest()
+
+    db = get_db()
+    db.add_metric(name, key_hash)
     return json.dumps({"api_key": api_key})
 
 
@@ -67,21 +72,29 @@ def add_metric():
 # POST /metrics/[metric name]/?api_key=[API key]
 @app.route('/metrics/<metric_name>', methods=['GET', 'POST'])
 def metrics(metric_name):
+    db = get_db()
     if flask.request.method == 'POST':
         api_key = flask.request.args.get('api_key', None)
-        if name is None:
+        if api_key is None:
+            flask.abort(403)
+        payload = flask.request.get_json()
+        if "creation_time" not in payload:
             flask.abort(400)
+        if "data" not in payload:
+            flask.abort(400)
+        creation_time = payload['creation_time']
+        data = payload['data']
+        db.insert_reading(metric_name, creation_time, json.dumps(data))
+        return json.dumps({"success": "true"})
     elif flask.request.method == 'GET':
-        cur = get_db().cursor()
-        cur.execute("SELECT data, creation_time FROM data WHERE metric_name = metric_name;")
-        readings = cur.fetchall()
+        readings = db.get_readings(metric_name)
         return_dict = {
             "metric_name": metric_name,
             "readings": [
                 {"creation_time": creation_time, "data": data} for data, creation_time in readings
             ]
         }
-        return json.dumps(return_dict)
+        return json.dumps(return_dict, default=json_serial)
 
 if __name__ == "__main__":
     app.run(debug=True)
