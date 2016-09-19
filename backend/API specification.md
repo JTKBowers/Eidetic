@@ -1,23 +1,6 @@
 # API specification
 This document outlines the API implemented by the backend.
 
-## Inserting new readings
-
-URI:
-```
-POST /metrics/[metric name]/?api_key=[API key]
-```
-
-Inserts the data provided (as JSON) with the POST request as a new reading for the metric.
-
-Data format:
-```
-{
-  "creation_time": "YYYY-MM-DD HH:MM:SS",
-  "data": {...}
-}
-```
-
 ## Getting a list of available metrics.
 URI:
 ```
@@ -35,6 +18,38 @@ Data format:
     },
     ...
   ]
+}
+```
+
+## Adding a new metric.
+URI:
+```
+POST /add-metric?name=[name]
+```
+
+Adds a new metric.
+
+Data format:
+```
+{
+  "api_key": "..."
+}
+```
+
+## Inserting new readings
+
+URI:
+```
+POST /metrics/[metric name]/?api_key=[API key]
+```
+
+Inserts the data provided (as JSON) with the POST request as a new reading for the metric.
+
+Data format:
+```
+{
+  "creation_time": "YYYY-MM-DD HH:MM:SS",
+  "data": {...}
 }
 ```
 
