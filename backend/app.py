@@ -42,6 +42,9 @@ def close_db(error):
 # GET /metrics/
 @app.route("/metrics/")
 def get_metrics():
+    '''
+    Returns a list of available metrics.
+    '''
     db = get_db()
     names = db.get_metrics()
     return_dict = {
@@ -50,12 +53,18 @@ def get_metrics():
     return json.dumps(return_dict)
 
 def generate_key():
+    '''
+    Generates an API key - a 32 character random string composed of numbers and lowercase letters.
+    '''
     key_length = 32
     return ''.join(random.SystemRandom().choice(string.ascii_lowercase + string.digits) for _ in range(key_length))
 
 # POST /add-metric?name=[name]
 @app.route('/add-metric', methods=['POST'])
 def add_metric():
+    '''
+    Adds a new metric. Returns the api key to be used to submit that metric.
+    '''
     name = flask.request.args.get('name', None)
     if name is None:
         flask.abort(400)
@@ -72,6 +81,9 @@ def add_metric():
 # POST /metrics/[metric name]/?api_key=[API key]
 @app.route('/metrics/<metric_name>', methods=['GET', 'POST'])
 def metrics(metric_name):
+    '''
+    Adds a new reading to a metric's data, or retreives a subset of that metric's data.
+    '''
     db = get_db()
     if flask.request.method == 'POST':
         api_key = flask.request.args.get('api_key', None)
