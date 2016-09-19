@@ -77,6 +77,9 @@ def metrics(metric_name):
         api_key = flask.request.args.get('api_key', None)
         if api_key is None:
             flask.abort(403)
+        key_hash = hashlib.sha512(api_key.encode('utf-8')).hexdigest()
+        if key_hash != db.get_api_key_hash(metric_name):
+            flask.abort(403)
         payload = flask.request.get_json()
         if "creation_time" not in payload:
             flask.abort(400)

@@ -48,7 +48,7 @@ class DatabaseConnection:
         '''
         cursor = self.db.cursor()
         if limit is None:
-            cursor.execute("SELECT data, creation_time FROM data WHERE metric_name = (%s) ORDER BY creation_time;", (metric_name))
+            cursor.execute("SELECT data, creation_time FROM data WHERE metric_name = (%s) ORDER BY creation_time;", (metric_name,))
         else:
             cursor.execute("SELECT data, creation_time FROM data WHERE metric_name = (%s) ORDER BY creation_time LIMIT (%s);", (metric_name, limit))
         return cursor.fetchall()
@@ -69,3 +69,10 @@ class DatabaseConnection:
             (metric_name, creation_time, data)
         )
         self.db.commit()
+    def get_api_key_hash(self, metric_name):
+        '''
+        Gets the API key hash for a metric.
+        '''
+        cursor = self.db.cursor()
+        cursor.execute("SELECT key_hash FROM metrics WHERE name = (%s) LIMIT 1;", (metric_name,))
+        return cursor.fetchone()[0]
