@@ -111,5 +111,6 @@ def metrics(metric_name):
         }
         return json.dumps(return_dict, default=json_serial)
 
+application = app
 if __name__ == "__main__":
     app.run(debug=True)
