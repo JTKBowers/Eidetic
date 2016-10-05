@@ -6,7 +6,18 @@ class DatabaseConnection:
     Exposes methods to connect & disconnect from a DB.
     It also provides high level methods to fetch data from the database.
     '''
-    def __init__(self, conn_str):
+    def __init__(self, host=None, port=None, dbname=None, dbuser=None, dbpass=None):
+        conn_str = ''
+        if host:
+            conn_str += 'host=' + host
+        if port:
+            conn_str += ' port=' + port
+        if dbname:
+            conn_str += ' dbname=' + dbname
+        if dbuser:
+            conn_str += ' user=' + dbuser
+        if dbpass:
+            conn_str += ' password=' + dbpass
         self.db = psycopg2.connect(conn_str)
     def close(self):
         self.db.close()

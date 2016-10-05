@@ -12,7 +12,8 @@ app = flask.Flask(__name__)
 
 app.config.from_object(__name__)
 app.config.update(dict(
-    DATABASE="dbname=eidetic user=eidetic",
+    DBNAME="eidetic",
+    DBUSER="eidetic",
 ))
 app.config.from_envvar('EIDETIC_SETTINGS', silent=True)
 
@@ -30,7 +31,19 @@ def get_db():
     current application context.
     """
     if not hasattr(flask.g, 'psql_db'):
-        flask.g.psql_db = db.DatabaseConnection(app.config['DATABASE'])
+        # Check for RDS
+        if os.environ.get('RDS_DB_NAME') is None:
+            # Connect to local db
+            dbname = app.config['DBNAME']
+            dbuser = app.config['DBNAME']
+            flask.g.psql_db = db.DatabaseConnection(dbname=dbname,dbuser=dbuser)
+        else:
+            dbname = os.environ['RDS_DB_NAME']
+            dbhost = os.environ['RDS_HOSTNAME']
+            dbport = os.environ['RDS_PORT']
+            dbuser = os.environ['RDS_USERNAME']
+            dbpass = os.environ['RDS_PASSWORD']
+            flask.g.psql_db = db.DatabaseConnection(host=dbhost, port=dbport, dbname=dbname, dbuser=dbuser, dbpass=dbpass)
     return flask.g.psql_db
 
 @app.teardown_appcontext
